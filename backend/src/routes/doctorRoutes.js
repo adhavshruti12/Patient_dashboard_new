@@ -1,8 +1,9 @@
 const express = require("express");
-const { getDoctors } = require("../controllers/doctorController");
+const { getPrescriptions } = require("../controllers/prescriptionController"); // ✅ Correct Import
 
 const router = express.Router();
 
-router.get("/", getDoctors); 
+// Define your doctor-related routes here
+router.get("/prescriptions", getPrescriptions); // ✅ Use the function
 
 module.exports = router;
