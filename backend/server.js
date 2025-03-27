@@ -7,6 +7,7 @@ const appointmentRoutes = require("./src/routes/appointmentRoutes");
 const doctorRoutes = require("./src/routes/doctorRoutes");
 const filteredDoctorRoutes = require("./src/routes/filteredDoctorRoutes"); // ✅ Fix
 
+
 const errorHandler = require("./src/middlewares/errorMiddleware");
 
 dotenv.config();
@@ -24,6 +25,7 @@ app.use("/api/auth", require("./src/routes/authRoutes"));
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/filtered-doctors", filteredDoctorRoutes);
+app.use("/api", require("./src/routes/billingRoutes"));
 
 // Error Handling Middleware
 app.use(errorHandler);

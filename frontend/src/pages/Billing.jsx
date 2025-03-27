@@ -531,4 +531,59 @@ const Billing = () => {
   )
 }
 
+
+const handlePaymentSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!validateForm()) {
+      setToast({
+          show: true,
+          message: 'Please correct the errors in the form',
+          type: 'error'
+      });
+      return;
+  }
+
+  try {
+      // 📌 Send payment data to backend
+      const response = await fetch("http://localhost:5000/api/pay_now", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+              invoice_id: selectedBill.id,
+              patient_id: 12345,  // Replace with actual patient ID
+              amount: selectedBill.amount,
+              payment_method: "Card"
+          })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+          setBills(bills.map(bill => 
+              bill.id === selectedBill.id ? { ...bill, status: 'paid' } : bill
+          ));
+
+          setShowPaymentModal(false);
+          setPaymentInfo({ cardNumber: '', cardName: '', expiryDate: '', cvv: '' });
+
+          setToast({
+              show: true,
+              message: 'Payment processed successfully',
+              type: 'success'
+          });
+      } else {
+          throw new Error(data.error || "Payment failed");
+      }
+
+  } catch (error) {
+      setToast({
+          show: true,
+          message: 'Payment processing failed. Please try again.',
+          type: 'error'
+      });
+  }
+};
+
+
 export default Billing
