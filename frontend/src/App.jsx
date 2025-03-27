@@ -13,7 +13,7 @@ import ChatApp from './pages/ChatApp';
 import AppointmentBooking from "./pages/AppointmentBooking"; 
 import MyAppointments from "./pages/MyAppointments";
 import DoctorAvailability from "./components/DoctorAvailability";
-import DoctorBookingForm from "./components/DoctorBookingForm"; 
+import DoctorBookingForm from "./pages/AppointmentBooking"; 
 
 function App() {
   const [darkMode, setDarkMode] = useState(false)
