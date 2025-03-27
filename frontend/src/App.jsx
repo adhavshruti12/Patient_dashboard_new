@@ -11,9 +11,7 @@ import PatientLogin from './pages/PatientLogin'
 import PatientRegistration from './pages/PatientRegistration' 
 import ChatApp from './pages/ChatApp'; 
 import AppointmentBooking from "./pages/AppointmentBooking"; 
-import MyAppointments from "./pages/MyAppointments";
-import DoctorAvailability from "./components/DoctorAvailability";
-import DoctorBookingForm from "./components/DoctorBookingForm"; 
+
 
 function App() {
   const [darkMode, setDarkMode] = useState(false)
@@ -45,9 +43,6 @@ function AppContent({ darkMode, toggleDarkMode }) {
             <Route path="/register" element={<PatientRegistration />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/appointments" element={<AppointmentBooking darkMode={darkMode} />} />
-            <Route path="/my-appointments" element={<MyAppointments darkMode={darkMode}/>} />
-            <Route path="/doctor-availability" element={<DoctorAvailability />} />
-            <Route path="/doctor-form" element={<DoctorBookingForm />} />
             <Route path="/medical-history" element={<MedicalHistory />} />
             <Route path="/prescriptions" element={<Prescriptions />} />
             <Route path="/profile" element={<Profile />} />

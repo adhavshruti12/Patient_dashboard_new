@@ -1,121 +1,187 @@
-import { useState } from 'react'
-import { FaPills, FaClock, FaCalendarAlt, FaExclamationTriangle } from 'react-icons/fa'
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-const MedicationList = () => {
-  const [medications, setMedications] = useState([
-    {
-      id: 1,
-      name: 'Lisinopril',
-      dosage: '10mg',
-      frequency: 'Once daily',
-      startDate: '2025-01-15',
-      endDate: '2025-07-15',
-      instructions: 'Take in the morning with food',
-      refillDate: '2025-05-15',
-      doctor: 'Dr. Sarah Johnson',
-      status: 'active'
-    },
-    {
-      id: 2,
-      name: 'Atorvastatin',
-      dosage: '20mg',
-      frequency: 'Once daily',
-      startDate: '2025-02-10',
-      endDate: '2025-08-10',
-      instructions: 'Take in the evening',
-      refillDate: '2025-05-10',
-      doctor: 'Dr. Sarah Johnson',
-      status: 'active'
-    },
-    {
-      id: 3,
-      name: 'Amoxicillin',
-      dosage: '500mg',
-      frequency: 'Three times daily',
-      startDate: '2025-03-01',
-      endDate: '2025-03-10',
-      instructions: 'Take with food',
-      refillDate: null,
-      doctor: 'Dr. Michael Chen',
-      status: 'completed'
-    }
-  ])
+const MedicalRecords = () => {
+  const [records, setRecords] = useState([]);
+  const [search, setSearch] = useState("");
+  const navigate=useNavigate();
 
-  const activeMedications = medications.filter(med => med.status === 'active')
+  useEffect(() => {
+    const fetchPrescriptions = async () => {
+      try {
+        const response = await axios.get(" http://localhost:5000/api/doctors/get/prescriptions ");
+        setRecords(response.data);
+      } catch (error) {
+        console.error("Error fetching prescription records", error);
+      }
+    };
+
+    fetchPrescriptions();
+  }, []);
+
+  const filteredRecords = records.filter(record =>
+    record.patientName.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const styles = {
+    container: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      minHeight: "100vh",
+      background: "#f8f9fa", // Changed to match Appointments theme
+      padding: "20px",
+    },
+    header: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      width: "100%",
+      maxWidth: "900px",
+      marginBottom: "20px",
+    },
+    title: {
+      fontSize: "24px",
+      fontWeight: "bold",
+      color: "black",
+      textAlign: "center",
+      marginBottom: "20px",
+    },
+    searchBar: {
+      width: "40%",
+      padding: "10px",
+      border: "1px solid #ddd",
+      borderRadius: "5px",
+      outline: "none",
+    },
+    card: {
+      width: "100%",
+      maxWidth: "900px",
+      background: "#fff",
+      boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
+      borderRadius: "10px",
+      padding: "20px",
+      marginTop: "20px",
+    },
+    recordItem: {
+      background: "#fff",
+      padding: "15px",
+      borderRadius: "8px",
+      boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.1)",
+      marginBottom: "15px",
+    },
+    recordHeader: {
+      fontSize: "18px",
+      fontWeight: "bold",
+      color: "#48f0dc", // Matched with Appointments table header
+      marginBottom: "5px",
+    },
+    sectionTitle: {
+      fontSize: "16px",
+      fontWeight: "bold",
+      marginTop: "10px",
+    },
+    actionButtons: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: "10px",
+      marginTop: "15px",
+    },
+    button: {
+      padding: "8px 15px",
+      border: "none",
+      borderRadius: "5px",
+      fontWeight: "bold",
+      cursor: "pointer",
+    },
+    downloadBtn: {
+      background: "#48f0dc",
+      color: "#fff",
+    },
+    viewBtn: {
+      background: "#48f0dc",
+      color: "#fff",
+    },
+    table: {
+      width: "100%",
+      borderCollapse: "collapse",
+      marginTop: "20px",
+    },
+    th: {
+      background: "#48f0dc", // Changed to match Appointments theme
+      color: "white",
+      padding: "10px",
+      textAlign: "left",
+      border: "1px solid #ddd",
+    },
+    td: {
+      padding: "10px",
+      border: "1px solid #ddd",
+    },
+  };
   
   return (
-    <div className="card">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-dark-dark dark:text-white">Current Medications</h2>
-        <button className="btn btn-outline text-sm">View All</button>
+    <div style={styles.container}>
+      <div style={{ display: "flex", justifyContent: "space-between", width: "900px" }}>
+        <h2 style={styles.title}>Medical Records</h2>
+        <input
+          type="text"
+          placeholder="Search by patient name..."
+          style={styles.searchBar}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
-      
-      {activeMedications.length > 0 ? (
-        <div className="space-y-4">
-          {activeMedications.map(medication => {
-            // Calculate days until refill
-            const today = new Date()
-            const refillDate = new Date(medication.refillDate)
-            const daysUntilRefill = Math.ceil((refillDate - today) / (1000 * 60 * 60 * 24))
-            const needsRefill = daysUntilRefill <= 7
-            
-            return (
-              <div key={medication.id} className="border border-neutral dark:border-dark-light rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex justify-between">
-                  <div className="flex items-start">
-                    <div className="p-2 mr-3 rounded-full bg-primary-light bg-opacity-20">
-                      <FaPills className="text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-dark-dark dark:text-white">{medication.name}</h3>
-                      <p className="text-sm text-neutral-darkest dark:text-neutral-light">{medication.dosage} - {medication.frequency}</p>
-                    </div>
-                  </div>
-                  
-                  {needsRefill && (
-                    <div className="flex items-center text-xs px-2 py-1 bg-accent bg-opacity-10 text-accent rounded-full">
-                      <FaExclamationTriangle className="mr-1" />
-                      <span>Refill soon</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div className="flex items-center text-sm">
-                    <FaClock className="mr-2 text-primary" />
-                    <span className="text-dark-light dark:text-neutral-light">{medication.frequency}</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <FaCalendarAlt className="mr-2 text-primary" />
-                    <span className="text-dark-light dark:text-neutral-light">
-                      Until {new Date(medication.endDate).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        year: 'numeric' 
-                      })}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="mt-3 text-sm text-dark-light dark:text-neutral-light">
-                  <p><span className="font-medium">Instructions:</span> {medication.instructions}</p>
-                </div>
-                
-                <div className="mt-4 flex justify-between items-center">
-                  <button className="btn btn-primary text-xs">Request Refill</button>
-                  <button className="btn btn-outline text-xs">View Details</button>
-                </div>
+  
+      <div style={styles.card}>
+        {filteredRecords.length > 0 ? (
+          filteredRecords.map((record, index) => (
+            <div key={index} style={styles.recordItem}>
+              <h3 style={styles.recordHeader}>
+                Prescription for {record.patientName}
+              </h3>
+              <p>
+                <strong>Prescription Date:</strong> {record.date}
+              </p>
+              <p style={styles.sectionTitle}>Medications</p>
+              <ul>
+                {record.medicines.map((med, i) => (
+                  <li key={i}>
+                    {med.name} ({med.dosage}, {med.frequency}, {med.duration})
+                  </li>
+                ))}
+              </ul>
+              <p>
+                <strong>Age:</strong> {record.age}
+              </p>
+              <p>
+                <strong>Diagnosis:</strong> {record.diagnosis}
+              </p>
+              <p>
+                <strong>Surgeries:</strong> {record.surgeries}
+              </p>
+              <p>
+                <strong>Follow-Up Date:</strong> {record.nextDate}
+              </p>
+              <div style={styles.actionButtons}>
+                <button style={{ ...styles.button, ...styles.downloadBtn }}>
+                  Download Prescription
+                </button>
+                <button onClick={() => navigate('/prescription')} style={{ ...styles.button, background: "#007bff", color: "#fff" }} >
+                  add Prescription
+                </button>
               </div>
-            )
-          })}
-        </div>
-      ) : (
-        <div className="text-center py-8">
-          <p className="text-neutral-darkest dark:text-neutral-light">No active medications found.</p>
-        </div>
-      )}
+            </div>
+          ))
+        ) : (
+          <p style={{ textAlign: "center", fontWeight: "bold" }}>
+            No medical records found.
+          </p>
+        )}
+      </div>
     </div>
-  )
-}
-
-export default MedicationList
+  );
+  
+};
+export default MedicalRecords;
