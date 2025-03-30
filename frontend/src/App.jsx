@@ -1,31 +1,40 @@
-import { useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
-import Sidebar from './components/Sidebar'
-import Navbar from './components/Navbar'
-import Dashboard from './pages/Dashboard'
+import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import useUserStore from './stores/userStore';
+import Sidebar from './components/Sidebar';
+import Navbar from './components/Navbar';
+import Dashboard from './pages/Dashboard';
 
-import Prescriptions from './pages/Prescriptions'
-import Profile from './pages/Profile'
-import Billing from './pages/Billing'
-import PatientLogin from './pages/PatientLogin'
-import PatientRegistration from './pages/PatientRegistration' 
+import Prescriptions from './pages/Prescriptions';
+import Profile from './pages/Profile';
+import Billing from './pages/Billing';
+import PatientLogin from './pages/PatientLogin';
+import PatientRegistration from './pages/PatientRegistration';
 
-import AppointmentBooking from "./pages/AppointmentBooking"; 
-import MyAppointments from "./pages/MyAppointments";
-import DoctorAvailability from "./components/DoctorAvailability";
+import AppointmentBooking from './pages/AppointmentBooking';
+import MyAppointments from './pages/MyAppointments';
+import DoctorAvailability from './components/DoctorAvailability';
 
 function App() {
-  const [darkMode, setDarkMode] = useState(false)
+  const [darkMode, setDarkMode] = useState(false);
+  const { user, fetchUpcomingAppointments } = useUserStore();
+
+  useEffect(() => {
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      fetchUpcomingAppointments(userId);
+    }
+  }, [fetchUpcomingAppointments]);
 
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode)
-  }
+    setDarkMode(!darkMode);
+  };
 
   return (
     <Router>
       <AppContent darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
     </Router>
-  )
+  );
 }
 
 function AppContent({ darkMode, toggleDarkMode }) {
@@ -44,13 +53,11 @@ function AppContent({ darkMode, toggleDarkMode }) {
             <Route path="/register" element={<PatientRegistration />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/appointments" element={<AppointmentBooking darkMode={darkMode} />} />
-            <Route path="/my-appointments" element={<MyAppointments darkMode={darkMode}/>} />
+            <Route path="/my-appointments" element={<MyAppointments darkMode={darkMode} />} />
             <Route path="/doctor-availability" element={<DoctorAvailability />} />
-         
             <Route path="/prescriptions" element={<Prescriptions />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/billing" element={<Billing />} />
-           
           </Routes>
         </main>
       </div>

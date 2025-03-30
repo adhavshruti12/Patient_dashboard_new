@@ -33,7 +33,7 @@ const MyAppointments = () => {
   };
 
   const handleReschedule = (appointment) => {
-    navigate(`/appointments`, { state: { appointment } });
+    navigate("/appointments", { state: { appointment } });
   };
 
   const today = new Date();

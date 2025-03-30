@@ -165,4 +165,31 @@ const getPatientProfile = async (req, res) => {
   }
 };
 
-module.exports = { patientRegister, patientLogin, getPatientProfile };
+// User Login
+exports.loginUser = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Find the user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Compare the password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Generate a JWT token
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    res.status(200).json({ userId: user._id, token });
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    res.status(500).json({ message: 'Failed to log in user' });
+  }
+};
+
+module.exports = { patientRegister, patientLogin, getPatientProfile, loginUser };
