@@ -31,23 +31,24 @@ const Sidebar = () => {
       <div className="flex flex-col items-center">
         <SidebarIcon icon={<FaHome size="20" />} text="Dashboard" to="/dashboard" />
         <SidebarIcon icon={<FaCalendarAlt size="20" />} text="Appointments" to="/my-appointments" />
-        <SidebarIcon icon={<FaHistory size="20" />} text="Medical History" to="/medical-history" />
+      
         <SidebarIcon icon={<FaPrescriptionBottleAlt size="20" />} text="Prescriptions" to="/prescriptions" />
         <SidebarIcon icon={<FaFileInvoiceDollar size="20" />} text="Billing" to="/billing" />
-        <SidebarIcon icon={<FaComments size="20" />} text="ChatApp" to="/live-chat" />
+        
         <SidebarIcon icon={<FaUser size="20" />} text="Profile" to="/profile" />
       
       </div>
-      <div className="mt-auto mb-4 flex flex-col items-center">
-        <SidebarIcon icon={<FaCog size="20" />} text="Settings" to="/settings" />
-        <div className="sidebar-icon group">
-          <FaSignOutAlt size="20" />
-          <span className="sidebar-tooltip group-hover:scale-100">
-            Log Out
-          </span>
-        </div>
+
+      <div className="sidebar-icon group">
+  <NavLink to="/">
+    <FaSignOutAlt size="20" />
+    <span className="sidebar-tooltip group-hover:scale-100">
+      Log Out
+    </span>
+  </NavLink>
+</div>
       </div>
-    </div>
+    
   )
 }
 

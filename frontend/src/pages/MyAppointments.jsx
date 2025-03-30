@@ -136,7 +136,22 @@ const MyAppointments = () => {
                         </button>
                       </>
                     ) : (
-                      <button className="text-blue-500 dark:text-blue-400 hover:underline">Book Again</button>
+                      <button
+                        onClick={() =>
+                          navigate("/appointments", {
+                            state: {
+                              appointment: {
+                                ...appointment,
+                                date: "", // Clear the date
+                                time: "", // Clear the time
+                              },
+                            },
+                          })
+                        }
+                        className="text-blue-500 dark:text-blue-400 hover:underline"
+                      >
+                        Book Again
+                      </button>
                     )}
                   </td>
                 </tr>

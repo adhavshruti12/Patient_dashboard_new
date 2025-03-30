@@ -3,13 +3,13 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import Sidebar from './components/Sidebar'
 import Navbar from './components/Navbar'
 import Dashboard from './pages/Dashboard'
-import MedicalHistory from './pages/MedicalHistory'
+
 import Prescriptions from './pages/Prescriptions'
 import Profile from './pages/Profile'
 import Billing from './pages/Billing'
 import PatientLogin from './pages/PatientLogin'
 import PatientRegistration from './pages/PatientRegistration' 
-import ChatApp from './pages/ChatApp'; 
+
 import AppointmentBooking from "./pages/AppointmentBooking"; 
 import MyAppointments from "./pages/MyAppointments";
 import DoctorAvailability from "./components/DoctorAvailability";
@@ -46,11 +46,11 @@ function AppContent({ darkMode, toggleDarkMode }) {
             <Route path="/appointments" element={<AppointmentBooking darkMode={darkMode} />} />
             <Route path="/my-appointments" element={<MyAppointments darkMode={darkMode}/>} />
             <Route path="/doctor-availability" element={<DoctorAvailability />} />
-            <Route path="/medical-history" element={<MedicalHistory />} />
+         
             <Route path="/prescriptions" element={<Prescriptions />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/billing" element={<Billing />} />
-            <Route path="/live-chat" element={<ChatApp />} />
+           
           </Routes>
         </main>
       </div>

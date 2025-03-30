@@ -3,6 +3,8 @@ import HealthOverview from '../components/HealthOverview';
 import HealthTrends from '../components/HealthTrends';
 import useUserStore from '../stores/userStore';
 import { useEffect, useState } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const Dashboard = () => {
   const { user, fetchUser } = useUserStore();
@@ -22,6 +24,17 @@ const Dashboard = () => {
     }
   }, [user, fetchUser]);
 
+  const handleDownload = async () => {
+    const element = document.querySelector('.pdf-content'); // Target only the content to include in the PDF
+    const canvas = await html2canvas(element, { scale: 2 }); // Higher scale for better quality
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('Health_Report.pdf');
+  };
+
   if (error) {
     return <div className="text-red-500 text-center">{error}</div>;
   }
@@ -38,14 +51,19 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="mt-4 md:mt-0 flex gap-4">
-          <button className="btn btn-primary">Download Health Report</button>
-          <Link to="/medical-history" className="btn btn-secondary">
+          <button className="btn btn-primary" onClick={handleDownload}>
+            Download Health Report
+          </button>
+          <Link to="/prescriptions" className="btn btn-secondary">
             View Medical History
           </Link>
         </div>
       </div>
-      <HealthOverview />
-      <HealthTrends />
+      {/* Content to include in the PDF */}
+      <div className="pdf-content">
+        <HealthOverview />
+        <HealthTrends />
+      </div>
     </div>
   );
 };

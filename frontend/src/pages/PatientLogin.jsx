@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
+import "../styles/global.css";
 import { Link } from "react-router-dom"; // Import Link from react-router-dom
 
 const BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL;
@@ -78,7 +79,7 @@ const PatientLogin = () => {
                 placeholder="email"
                 onChange={handleChange}
                 value={formData.patient_username}
-                className="w-full p-2 focus:outline-none bg-white text-black" // Ensure background color is white and text color is black
+                className="w-full p-2 focus:outline-none bg-white text-black placeholder-gray-500" // Ensure white background and black text
               />
             </div>
 
@@ -90,7 +91,7 @@ const PatientLogin = () => {
                 placeholder="Password"
                 onChange={handleChange}
                 value={formData.patient_password}
-                className="w-full p-2 focus:outline-none bg-white text-black" // Ensure background color is white and text color is black
+                className="w-full p-2 focus:outline-none bg-white text-black placeholder-gray-500" // Ensure white background and black text
               />
             </div>
 

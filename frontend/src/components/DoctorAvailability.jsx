@@ -31,7 +31,7 @@ const DoctorAvailability = () => {
     };
 
     return (
-        <div className="container mx-auto p-6">
+        <div className="ml-16 container mx-auto p-6"> {/* Added `ml-16` to account for the sidebar width */}
             <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Doctor Availabilities</h2>
 
             {/* Date Picker */}
