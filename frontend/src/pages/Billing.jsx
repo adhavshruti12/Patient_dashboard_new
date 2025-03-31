@@ -4,6 +4,8 @@ import { validateCardNumber, validateExpiryDate, validateCVV, formatCardNumber, 
 import Toast from '../components/Toast';
 import jsPDF from 'jspdf'; // Import jsPDF for PDF generation
 
+
+
 const Billing = () => {
   const [bills, setBills] = useState([
     {

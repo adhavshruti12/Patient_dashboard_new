@@ -15,6 +15,7 @@ router.post('/', async (req, res) => {
   }
 });
 
+
 // GET: Fetch all payments
 router.get('/', async (req, res) => {
   try {
