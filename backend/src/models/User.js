@@ -18,6 +18,8 @@ const PatientSchema = new mongoose.Schema({
   patient_medications: String,
   patient_allergies: String,
   patient_disabilities: String,
+  patient_height:String,
+  patient_weight:String,
   patient_prevMedicalReports: [String],
 });
 

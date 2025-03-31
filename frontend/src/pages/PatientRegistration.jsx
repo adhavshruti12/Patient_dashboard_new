@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { User, Phone, Mail, Home, Eye, HeartPulse, FileText, ChevronLeft, ChevronRight, AlertTriangle, Upload } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer } from "react-toastify";
 
 const BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL;
 
@@ -88,6 +89,7 @@ const PatientRegistration = () => {
     const validFiles = files.filter(file => allowedTypes.includes(file.type));
   
     if (validFiles.length !== files.length) {
+
       toast.error("Only JPG and PNG files are allowed!", { position: "top-right" });
       return;
     }
@@ -132,6 +134,7 @@ const PatientRegistration = () => {
 
       // Ensure all fields are filled
       if (Object.values(formData).some(field => field.trim() === "")) {
+        setSubmitCount(0);
         toast.error("Please fill in all fields!", { position: "top-right" });
         return;
       }
@@ -191,6 +194,7 @@ const PatientRegistration = () => {
   };
 
   return (
+    <>
     <div className="h-screen bg-[#a9e9e6] flex justify-center items-center">
       <div className="h-auto w-full bg-[#a9e9e6] bg-opacity-90 flex items-center justify-center mt-12"> {/* Increased top margin */}
         <div className="w-full max-w-2xl mx-auto bg-white shadow-lg rounded-xl border border-[#66D2CE] p-8"> {/* Slightly increased width and height */}
@@ -257,8 +261,6 @@ const PatientRegistration = () => {
                   <Input label="Medications *" name="patient_medications" icon={FileText} value={formData.patient_medications} onChange={handleChange} />
                   <Input label="Allergies *" name="patient_allergies" icon={AlertTriangle} value={formData.patient_allergies} onChange={handleChange} />
                   <Input label="Disabilities *" name="patient_disabilities" icon={AlertTriangle} value={formData.patient_disabilities} onChange={handleChange} />
-                  <Input label="Height *" name="patient_height" icon={FileText} value={formData.patient_height} onChange={handleChange} />
-                  <Input label="Weight *" name="patient_weight" icon={FileText} value={formData.patient_weight} onChange={handleChange} />
                   
                   <div className="mb-4 flex items-center bg-white rounded-lg border border-[#66D2CE] p-2 overflow-hidden">
                     <label htmlFor="patient_prevMedicalReports" className="cursor-pointer bg-white py-2 rounded-md flex items-center">
@@ -312,6 +314,8 @@ const PatientRegistration = () => {
         </div>
       </div>
     </div>
+    <ToastContainer/>
+    </>
   );
 };
 
