@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 
+
 const connectDB = require("./src/config/db");
 
 // Route Imports
@@ -13,7 +14,10 @@ const paymentRoutes = require("./src/routes/paymentRoutes");
 const authRoutes = require("./src/routes/authRoutes");
 const unpaidPaymentRoutes = require("./src/routes/unpaidPaymentRoutes");
 const prescriptionRoutes = require("./src/routes/prescriptionRoutes");
+const userRoutes = require("./src/routes/userRoutes");
 const errorHandler = require("./src/middlewares/errorMiddleware");
+const notificationRoutes = require('./src/routes/notificationRoutes');
+
 
 dotenv.config();
 const app = express();
@@ -33,12 +37,14 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/auth", userRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/filtered-doctors", filteredDoctorRoutes);
 app.use("/api/payments", paymentRoutes); // 👈 Payment Route
 app.use("/api", unpaidPaymentRoutes); // Register the unpaid payments route
 app.use("/api", prescriptionRoutes); // Register the prescriptions route
+app.use('/api', notificationRoutes);
 
 // ✅ Error Handling Middleware
 app.use(errorHandler);

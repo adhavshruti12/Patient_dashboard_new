@@ -3,23 +3,15 @@ import jsPDF from "jspdf"; // Import jsPDF for PDF generation
 import html2canvas from "html2canvas"; // Import html2canvas for rendering HTML to canvas
 import { useNavigate } from "react-router-dom";
 
-const user = JSON.parse(localStorage.getItem("user")); // Retrieve user details from local storage
-
 const MedicalRecords = () => {
   const [records, setRecords] = useState([]); // Prescription records
   const [search, setSearch] = useState(""); // Search input
   const [toast, setToast] = useState({ show: false, message: "", type: "" }); // Toast state
-  const navigate = useNavigate();
 
   // Fetch all prescriptions
   const fetchPrescriptions = async () => {
     try {
-      const patientName = user?.name; // Get the logged-in patient's name (replace with the correct field)
-      const response = await fetch(
-        `http://localhost:5000/api/prescriptions?patientName=${encodeURIComponent(
-          patientName
-        )}`
-      );
+      const response = await fetch("http://localhost:5000/api/prescriptions");
 
       if (!response.ok) {
         throw new Error("Failed to fetch prescriptions");
@@ -38,10 +30,8 @@ const MedicalRecords = () => {
   };
 
   useEffect(() => {
-    if (user?.name) {
-      fetchPrescriptions();
-    }
-  }, [user]);
+    fetchPrescriptions();
+  }, []);
 
   // Filter records based on the search input
   const filteredRecords = records.filter((record) =>
@@ -49,33 +39,24 @@ const MedicalRecords = () => {
   );
 
   // Function to download a prescription as a PDF
-  const handleDownloadPrescription = async (record) => {
+  const handleDownloadPrescription = async (recordId) => {
     try {
-      // Dynamically select the specific prescription block
-      const element = document.querySelector(`#prescription-${record.id}`);
-      if (!element) {
-        console.error(`Prescription block with ID prescription-${record.id} not found.`);
-        return;
-      }
-
+      const element = document.querySelector(`#prescription-${recordId}`); // Target the specific prescription content
       const button = element.querySelector(".no-print"); // Select the button inside the prescription block
 
       // Temporarily hide the button
-      if (button) button.style.display = "none";
+      button.style.display = "none";
 
-      // Capture the content of the prescription block
       const canvas = await html2canvas(element, { scale: 2 }); // Higher scale for better quality
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-
-      // Save the PDF with a unique filename
-      pdf.save(`Prescription_${record.patientName}_${record.id}.pdf`);
+      pdf.save(`Prescription_${recordId}.pdf`);
 
       // Restore the button visibility
-      if (button) button.style.display = "block";
+      button.style.display = "block";
     } catch (error) {
       console.error("Error generating PDF:", error.message);
     }
@@ -218,7 +199,7 @@ const MedicalRecords = () => {
                 <button
                   className="no-print"
                   style={{ ...styles.button, ...styles.downloadBtn }}
-                  onClick={() => handleDownloadPrescription(record)} // Pass the entire record object
+                  onClick={() => handleDownloadPrescription(record.id)}
                 >
                   Download Prescription
                 </button>

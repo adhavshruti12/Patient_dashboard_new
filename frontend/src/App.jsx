@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import useUserStore from './stores/userStore';
 import Sidebar from './components/Sidebar';
@@ -17,14 +17,22 @@ import DoctorAvailability from './components/DoctorAvailability';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
-  const { user, fetchUpcomingAppointments } = useUserStore();
+  const { fetchUser, fetchUpcomingAppointments } = useUserStore();
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
-    if (userId) {
-      fetchUpcomingAppointments(userId);
+    const token = localStorage.getItem('token');
+
+    if (userId && token) {
+      fetchUser(userId, token).catch((err) => {
+        console.error('Error fetching user:', err.message);
+      });
+
+      fetchUpcomingAppointments(token).catch((err) => {
+        console.error('Error fetching appointments:', err.message);
+      });
     }
-  }, [fetchUpcomingAppointments]);
+  }, [fetchUser, fetchUpcomingAppointments]);
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);

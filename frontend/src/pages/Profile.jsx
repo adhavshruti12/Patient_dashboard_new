@@ -1,64 +1,98 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaIdCard, FaCalendarAlt, FaUserMd, FaShieldAlt, FaHeartbeat, FaEye, FaHome, FaFileAlt, FaExclamationTriangle } from 'react-icons/fa' // Import necessary icons
+import { toast } from "react-toastify";
+import { updatePatientProfile } from '../api/axios';
 
 const Profile = () => {
-  const [profile, setProfile] = useState({
-    fullName: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '(555) 123-4567',
-    dateOfBirth: '1985-06-15',
-    gender: 'Male',
-    bloodType: 'O+',
-    height: '175',
-    weight: '75',
-    maritalStatus: 'Single',
-    address: '123 Main Street, Anytown, CA, 12345, United States',
-    emergencyContactName: 'Jane Doe',
-    emergencyContactRelation: 'Spouse',
-    emergencyContactNumber: '(555) 987-6543',
-    medicalConditions: 'None',
-    pastSurgeries: 'None',
-    medications: 'None',
-    allergies: 'None',
-    disabilities: 'None'
-  })
+  const [profileData, setProfileData] = useState(null);
+  const [activeTab, setActiveTab] = useState('personal');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedProfile, setEditedProfile] = useState(null);
 
-  const [activeTab, setActiveTab] = useState('personal')
-  const [isEditing, setIsEditing] = useState(false)
-  const [editedProfile, setEditedProfile] = useState({...profile})
+  // Fetch profile data on component mount
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('No token found');
+        return;
+      }
 
-  const handleInputChange = (section, field, value) => {
+      try {
+        const res = await fetch('http://localhost:5000/api/auth/getPatientProfile', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setProfileData(data);
+          setEditedProfile(data); // Include files in the editable profile
+        } else {
+          console.log('Failed to fetch profile data');
+          toast.error('Failed to fetch profile data');
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        toast.error('Error fetching profile data');
+      }
+    };
+
+    fetchProfileData();
+  }, []);
+
+  const handleInputChange = (field, value) => {
     setEditedProfile({
       ...editedProfile,
       [field]: value
-    })
-  }
+    });
+  };
 
   const handleFileUpload = (e) => {
-    const files = [...e.target.files]
-    const allowedTypes = ["image/jpeg", "image/png", "application/pdf"]
+    const files = [...e.target.files];
+    const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
     
-    const validFiles = files.filter(file => allowedTypes.includes(file.type))
+    const validFiles = files.filter(file => allowedTypes.includes(file.type));
   
     if (validFiles.length !== files.length) {
-      toast.error("Only JPG, PNG, and PDF files are allowed!", { position: "top-right" })
-      return
+      toast.error("Only JPG, PNG, and PDF files are allowed!", { position: "top-right" });
+      return;
     }
   
     setEditedProfile({
       ...editedProfile,
-      medicalReportFile: validFiles
-    })
-  }
+      patient_prevMedicalReports: validFiles
+    });
+  };
 
-  const handleSave = () => {
-    setProfile(editedProfile)
-    setIsEditing(false)
-  }
+  const handleSave = async () => {
+    try {
+      console.log('Saving profile data:', editedProfile); // Debug log
+      
+      const response = await updatePatientProfile(editedProfile);
+      console.log('Server response:', response); // Debug log
+
+      setProfileData(response);
+      setIsEditing(false);
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error(error.message || 'Error updating profile. Please try again.');
+    }
+  };
 
   const handleCancel = () => {
-    setEditedProfile({...profile})
-    setIsEditing(false)
+    setEditedProfile({...profileData});
+    setIsEditing(false);
+  };
+
+  if (!profileData) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p>Loading profile...</p>
+      </div>
+    );
   }
 
   return (
@@ -85,10 +119,10 @@ const Profile = () => {
           <div className="card">
             <div className="flex flex-col items-center">
               <div className="h-24 w-24 rounded-full bg-primary flex items-center justify-center text-white text-2xl font-bold mb-4">
-                {profile.fullName ? `${profile.fullName.split(' ')[0][0]}${profile.fullName.split(' ')[1][0]}` : ''}
+                {profileData.patient_fullName ? `${profileData.patient_fullName.split(' ')[0][0]}${profileData.patient_fullName.split(' ')[1] ? profileData.patient_fullName.split(' ')[1][0] : ''}` : ''}
               </div>
-              <h2 className="text-xl font-semibold text-dark-dark dark:text-white">{profile.fullName}</h2>
-              <p className="text-neutral-darkest dark:text-neutral-light">Patient ID: P-12345678</p>
+              <h2 className="text-xl font-semibold text-dark-dark dark:text-white">{profileData.patient_fullName}</h2>
+              <p className="text-neutral-darkest dark:text-neutral-light">Patient ID: {profileData._id}</p>
               
               <div className="w-full mt-6 space-y-1">
                 <button 
@@ -131,7 +165,6 @@ const Profile = () => {
                 >
                   <FaUserMd className="inline mr-2" /> Medical Information
                 </button>
-               
               </div>
             </div>
           </div>
@@ -148,12 +181,12 @@ const Profile = () => {
                     {isEditing ? (
                       <input 
                         type="text" 
-                        value={editedProfile.fullName} 
-                        onChange={(e) => handleInputChange(null, 'fullName', e.target.value)}
+                        value={editedProfile.patient_fullName} 
+                        onChange={(e) => handleInputChange('patient_fullName', e.target.value)}
                         className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
                       />
                     ) : (
-                      <p className="text-dark-dark dark:text-white">{profile.fullName}</p>
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_fullName}</p>
                     )}
                   </div>
                   <div>
@@ -161,13 +194,13 @@ const Profile = () => {
                     {isEditing ? (
                       <input 
                         type="date" 
-                        value={editedProfile.dateOfBirth} 
-                        onChange={(e) => handleInputChange(null, 'dateOfBirth', e.target.value)}
+                        value={editedProfile.patient_dob} 
+                        onChange={(e) => handleInputChange('patient_dob', e.target.value)}
                         className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
                       />
                     ) : (
                       <p className="text-dark-dark dark:text-white">
-                        {new Date(profile.dateOfBirth).toLocaleDateString('en-US', { 
+                        {new Date(profileData.patient_dob).toLocaleDateString('en-US', { 
                           month: 'long', 
                           day: 'numeric', 
                           year: 'numeric' 
@@ -179,8 +212,8 @@ const Profile = () => {
                     <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Gender</label>
                     {isEditing ? (
                       <select 
-                        value={editedProfile.gender} 
-                        onChange={(e) => handleInputChange(null, 'gender', e.target.value)}
+                        value={editedProfile.patient_gender} 
+                        onChange={(e) => handleInputChange('patient_gender', e.target.value)}
                         className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
                       >
                         <option value="Male">Male</option>
@@ -189,15 +222,15 @@ const Profile = () => {
                         <option value="Prefer not to say">Prefer not to say</option>
                       </select>
                     ) : (
-                      <p className="text-dark-dark dark:text-white">{profile.gender}</p>
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_gender}</p>
                     )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Blood Type</label>
                     {isEditing ? (
                       <select 
-                        value={editedProfile.bloodType} 
-                        onChange={(e) => handleInputChange(null, 'bloodType', e.target.value)}
+                        value={editedProfile.patient_bloodGroup} 
+                        onChange={(e) => handleInputChange('patient_bloodGroup', e.target.value)}
                         className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
                       >
                         <option value="A+">A+</option>
@@ -210,15 +243,15 @@ const Profile = () => {
                         <option value="O-">O-</option>
                       </select>
                     ) : (
-                      <p className="text-dark-dark dark:text-white">{profile.bloodType}</p>
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_bloodGroup}</p>
                     )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Marital Status</label>
                     {isEditing ? (
                       <select 
-                        value={editedProfile.maritalStatus} 
-                        onChange={(e) => handleInputChange(null, 'maritalStatus', e.target.value)}
+                        value={editedProfile.patient_maritalStatus} 
+                        onChange={(e) => handleInputChange('patient_maritalStatus', e.target.value)}
                         className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
                       >
                         <option value="Single">Single</option>
@@ -227,7 +260,7 @@ const Profile = () => {
                         <option value="Widowed">Widowed</option>
                       </select>
                     ) : (
-                      <p className="text-dark-dark dark:text-white">{profile.maritalStatus}</p>
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_maritalStatus}</p>
                     )}
                   </div>
                   <div>
@@ -235,12 +268,12 @@ const Profile = () => {
                     {isEditing ? (
                       <input 
                         type="number" 
-                        value={editedProfile.height} 
-                        onChange={(e) => handleInputChange(null, 'height', e.target.value)}
+                        value={editedProfile.patient_height} 
+                        onChange={(e) => handleInputChange('patient_height', e.target.value)}
                         className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
                       />
                     ) : (
-                      <p className="text-dark-dark dark:text-white">{profile.height} cm</p>
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_height} cm</p>
                     )}
                   </div>
                   <div>
@@ -248,25 +281,12 @@ const Profile = () => {
                     {isEditing ? (
                       <input 
                         type="number" 
-                        value={editedProfile.weight} 
-                        onChange={(e) => handleInputChange(null, 'weight', e.target.value)}
+                        value={editedProfile.patient_weight} 
+                        onChange={(e) => handleInputChange('patient_weight', e.target.value)}
                         className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
                       />
                     ) : (
-                      <p className="text-dark-dark dark:text-white">{profile.weight} kg</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Disabilities</label>
-                    {isEditing ? (
-                      <input 
-                        type="text" 
-                        value={editedProfile.disabilities} 
-                        onChange={(e) => handleInputChange(null, 'disabilities', e.target.value)}
-                        className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
-                      />
-                    ) : (
-                      <p className="text-dark-dark dark:text-white">{profile.disabilities}</p>
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_weight} kg</p>
                     )}
                   </div>
                 </div>
@@ -282,12 +302,12 @@ const Profile = () => {
                     {isEditing ? (
                       <input 
                         type="tel" 
-                        value={editedProfile.phone} 
-                        onChange={(e) => handleInputChange(null, 'phone', e.target.value)}
+                        value={editedProfile.patient_phone} 
+                        onChange={(e) => handleInputChange('patient_phone', e.target.value)}
                         className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
                       />
                     ) : (
-                      <p className="text-dark-dark dark:text-white">{profile.phone}</p>
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_phone}</p>
                     )}
                   </div>
                   <div>
@@ -295,26 +315,25 @@ const Profile = () => {
                     {isEditing ? (
                       <input 
                         type="email" 
-                        value={editedProfile.email} 
-                        onChange={(e) => handleInputChange(null, 'email', e.target.value)}
+                        value={editedProfile.patient_email} 
+                        onChange={(e) => handleInputChange('patient_email', e.target.value)}
                         className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
                       />
                     ) : (
-                      <p className="text-dark-dark dark:text-white">{profile.email}</p>
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_email}</p>
                     )}
                   </div>
-                 
                   <div>
                     <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Address</label>
                     {isEditing ? (
                       <input 
                         type="text" 
-                        value={editedProfile.address} 
-                        onChange={(e) => handleInputChange(null, 'address', e.target.value)}
+                        value={editedProfile.patient_address} 
+                        onChange={(e) => handleInputChange('patient_address', e.target.value)}
                         className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
                       />
                     ) : (
-                      <p className="text-dark-dark dark:text-white">{profile.address}</p>
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_address}</p>
                     )}
                   </div>
                 </div>
@@ -330,20 +349,20 @@ const Profile = () => {
                     {isEditing ? (
                       <input 
                         type="text" 
-                        value={editedProfile.emergencyContactName} 
-                        onChange={(e) => handleInputChange(null, 'emergencyContactName', e.target.value)}
+                        value={editedProfile.patient_emergencyContactName} 
+                        onChange={(e) => handleInputChange('patient_emergencyContactName', e.target.value)}
                         className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
                       />
                     ) : (
-                      <p className="text-dark-dark dark:text-white">{profile.emergencyContactName}</p>
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_emergencyContactName}</p>
                     )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Relation</label>
                     {isEditing ? (
                       <select 
-                        value={editedProfile.emergencyContactRelation} 
-                        onChange={(e) => handleInputChange(null, 'emergencyContactRelation', e.target.value)}
+                        value={editedProfile.patient_emergencyContactRelation} 
+                        onChange={(e) => handleInputChange('patient_emergencyContactRelation', e.target.value)}
                         className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
                       >
                         <option value="Parent">Parent</option>
@@ -353,7 +372,7 @@ const Profile = () => {
                         <option value="Other">Other</option>
                       </select>
                     ) : (
-                      <p className="text-dark-dark dark:text-white">{profile.emergencyContactRelation}</p>
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_emergencyContactRelation}</p>
                     )}
                   </div>
                   <div>
@@ -361,115 +380,131 @@ const Profile = () => {
                     {isEditing ? (
                       <input 
                         type="tel" 
-                        value={editedProfile.emergencyContactNumber} 
-                        onChange={(e) => handleInputChange(null, 'emergencyContactNumber', e.target.value)}
+                        value={editedProfile.patient_emergencyContactNumber} 
+                        onChange={(e) => handleInputChange('patient_emergencyContactNumber', e.target.value)}
                         className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
                       />
                     ) : (
-                      <p className="text-dark-dark dark:text-white">{profile.emergencyContactNumber}</p>
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_emergencyContactNumber}</p>
                     )}
                   </div>
                 </div>
               </div>
             )}
             
-{activeTab === 'medical' && (
-  <div>
-    <h3 className="text-lg font-semibold text-dark-dark dark:text-white mb-4">Medical Information</h3>
-    <div className="grid grid-cols-2 gap-2">
-      <div>
-        <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Medical Conditions</label>
-        {isEditing ? (
-          <input 
-            type="text" 
-            value={editedProfile.medicalConditions} 
-            onChange={(e) => handleInputChange(null, 'medicalConditions', e.target.value)}
-            className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
-          />
-        ) : (
-          <p className="text-dark-dark dark:text-white">{profile.medicalConditions}</p>
-        )}
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Past Surgeries</label>
-        {isEditing ? (
-          <input 
-            type="text" 
-            value={editedProfile.pastSurgeries} 
-            onChange={(e) => handleInputChange(null, 'pastSurgeries', e.target.value)}
-            className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
-          />
-        ) : (
-          <p className="text-dark-dark dark:text-white">{profile.pastSurgeries}</p>
-        )}
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Medications</label>
-        {isEditing ? (
-          <input 
-            type="text" 
-            value={editedProfile.medications} 
-            onChange={(e) => handleInputChange(null, 'medications', e.target.value)}
-            className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
-          />
-        ) : (
-          <p className="text-dark-dark dark:text-white">{profile.medications}</p>
-        )}
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Allergies</label>
-        {isEditing ? (
-          <input 
-            type="text" 
-            value={editedProfile.allergies} 
-            onChange={(e) => handleInputChange(null, 'allergies', e.target.value)}
-            className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
-          />
-        ) : (
-          <p className="text-dark-dark dark:text-white">{profile.allergies}</p>
-        )}
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Disabilities</label>
-        {isEditing ? (
-          <input 
-            type="text" 
-            value={editedProfile.disabilities} 
-            onChange={(e) => handleInputChange(null, 'disabilities', e.target.value)}
-            className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
-          />
-        ) : (
-          <p className="text-dark-dark dark:text-white">{profile.disabilities}</p>
-        )}
-      </div>
-      <div className="mb-4 flex items-center bg-white rounded-lg border border-[#66D2CE] p-2 overflow-hidden">
-        <label htmlFor="patient_prevMedicalReports" className="cursor-pointer bg-white py-2 rounded-md flex items-center">
-          <FaFileAlt className="text-[#66D2CE] w-5 h-5 mx-3" />
-          <span className={`w-full p-2 focus:outline-none overflow-hidden ${editedProfile.medicalReportFile && editedProfile.medicalReportFile.length > 0 ? "text-black" : "text-gray-500"}`}>
-            {editedProfile.medicalReportFile && editedProfile.medicalReportFile.length > 0 
-              ? editedProfile.medicalReportFile.map((file) => file.name).join(", ") 
-              : "Upload Previous Reports"}
-          </span>
-        </label>
-        <input
-          id="patient_prevMedicalReports"
-          type="file"
-          name="patient_prevMedicalReports"
-          accept=".pdf,.jpg,.png"
-          className="hidden"
-          multiple
-          onChange={handleFileUpload}
-        />
-      </div>
-    </div>
-  </div>
-)}
-
+            {activeTab === 'medical' && (
+              <div>
+                <h3 className="text-lg font-semibold text-dark-dark dark:text-white mb-4">Medical Information</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Medical Conditions</label>
+                    {isEditing ? (
+                      <input 
+                        type="text" 
+                        value={editedProfile.patient_medicalConditions} 
+                        onChange={(e) => handleInputChange('patient_medicalConditions', e.target.value)}
+                        className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
+                      />
+                    ) : (
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_medicalConditions}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Past Surgeries</label>
+                    {isEditing ? (
+                      <input 
+                        type="text" 
+                        value={editedProfile.patient_pastSurgeries} 
+                        onChange={(e) => handleInputChange('patient_pastSurgeries', e.target.value)}
+                        className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
+                      />
+                    ) : (
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_pastSurgeries}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Medications</label>
+                    {isEditing ? (
+                      <input 
+                        type="text" 
+                        value={editedProfile.patient_medications} 
+                        onChange={(e) => handleInputChange('patient_medications', e.target.value)}
+                        className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
+                      />
+                    ) : (
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_medications}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Allergies</label>
+                    {isEditing ? (
+                      <input 
+                        type="text" 
+                        value={editedProfile.patient_allergies} 
+                        onChange={(e) => handleInputChange('patient_allergies', e.target.value)}
+                        className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
+                      />
+                    ) : (
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_allergies}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">Disabilities</label>
+                    {isEditing ? (
+                      <input 
+                        type="text" 
+                        value={editedProfile.patient_disabilities} 
+                        onChange={(e) => handleInputChange('patient_disabilities', e.target.value)}
+                        className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
+                      />
+                    ) : (
+                      <p className="text-dark-dark dark:text-white">{profileData.patient_disabilities}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-darkest dark:text-neutral-light mb-1">
+                      Previous Medical Reports
+                    </label>
+                    {profileData.patient_prevMedicalReports && profileData.patient_prevMedicalReports.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {profileData.patient_prevMedicalReports.map((fileUrl, index) => (
+                          <div
+                            key={index}
+                            className="bg-white dark:bg-dark-light border border-neutral dark:border-dark-light rounded-lg p-4 shadow-md flex flex-col items-center justify-center"
+                            style={{
+                              minWidth: '200px', // Minimum width for the box
+                              maxWidth: '100%', // Allow it to grow dynamically
+                              wordWrap: 'break-word', // Ensure long file names wrap
+                            }}
+                          >
+                            <FaFileAlt className="text-primary w-10 h-10 mb-2" />
+                            <p className="text-sm text-dark-dark dark:text-white text-center truncate">
+                              {fileUrl.split('/').pop()} {/* Display the file name */}
+                            </p>
+                            <a
+                              href={fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 text-primary hover:underline text-sm px-4 py-2 border border-primary rounded-md"
+                            >
+                              View Report
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-neutral-darkest dark:text-neutral-light">No medical reports uploaded.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Profile
+export default Profile;
+

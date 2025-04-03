@@ -13,20 +13,32 @@ async function fetchUpcomingAppointments() {
   }
 }
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FaSearch, FaBell, FaMoon, FaSun } from 'react-icons/fa';
 import useUserStore from '../stores/userStore';
 
 const Navbar = ({ darkMode, toggleDarkMode }) => {
-  const { user, upcomingAppointments } = useUserStore(); // Access upcoming appointments
-  const [showNotifications, setShowNotifications] = useState(false); // Toggle dropdown visibility
+  const { user } = useUserStore();
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  const unreadCount = upcomingAppointments.length; // Count all upcoming appointments as unread
+  useEffect(() => {
+    // Fetch notifications from the backend
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch('/api/notifications');
+        if (!response.ok) {
+          throw new Error('Failed to fetch notifications');
+        }
+        const data = await response.json();
+        setNotifications(data);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
 
-  // Toggle notification dropdown
-  const handleNotificationClick = () => {
-    setShowNotifications(!showNotifications);
-  };
+    fetchNotifications();
+  }, []);
 
   return (
     <div className="h-16 px-4 flex items-center justify-between bg-white dark:bg-dark border-b border-neutral dark:border-dark-light">
@@ -37,73 +49,31 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
       </div>
 
       <div className="flex items-center space-x-4">
-        {/* Search Bar */}
+        {/* Notification Icon */}
         <div className="relative">
-          <input
-            type="text"
-            placeholder="Search..."
-            className="py-2 pl-10 pr-4 rounded-full bg-neutral-lightest dark:bg-dark-light text-dark dark:text-white border border-neutral dark:border-dark-light focus:outline-none focus:ring-2 focus:ring-primary"
+          <FaBell
+            className="text-dark-dark dark:text-white cursor-pointer"
+            size={20}
+            onClick={() => setShowNotifications(!showNotifications)}
           />
-          <FaSearch className="absolute left-3 top-3 text-neutral-darkest dark:text-neutral-light" />
-        </div>
-
-        {/* Notification Bell */}
-        <div className="relative">
-          <button
-            className="relative p-2 rounded-full hover:bg-neutral-lightest dark:hover:bg-dark-light"
-            onClick={handleNotificationClick}
-          >
-            <FaBell className="text-dark-light dark:text-neutral-light" />
-            {unreadCount > 0 && (
-              <span className="absolute top-0 right-0 h-4 w-4 bg-accent rounded-full text-xs text-white flex items-center justify-center">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-
-          {/* Notification Dropdown */}
+          {notifications.length > 0 && (
+            <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+              {notifications.length}
+            </span>
+          )}
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-dark-light rounded-md shadow-lg z-20">
-              <div className="p-2 border-b border-neutral dark:border-dark-light">
-                <h3 className="font-medium text-dark-dark dark:text-white">
-                  Notifications
-                </h3>
-              </div>
-              <div className="max-h-80 overflow-y-auto">
-                {upcomingAppointments.length > 0 ? (
-                  upcomingAppointments.map((appointment) => (
-                    <div
-                      key={appointment._id}
-                      className="p-3 border-b border-neutral dark:border-dark-light hover:bg-neutral-lightest dark:hover:bg-dark cursor-pointer"
-                    >
-                      <p className="text-sm text-dark-dark dark:text-white">
-                        Reminder: Appointment with Dr. {appointment.doctor} on{' '}
-                        {new Date(appointment.date).toLocaleDateString()} at{' '}
-                        {appointment.time}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-4 text-center text-neutral-darkest dark:text-neutral-light">
-                    No notifications
-                  </div>
-                )}
-              </div>
+            <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-dark shadow-lg rounded-lg p-4 z-50">
+              <h3 className="text-sm font-semibold text-dark-dark dark:text-white mb-2">Notifications</h3>
+              <ul className="space-y-2">
+                {notifications.map((notification) => (
+                  <li key={notification.id} className="text-sm text-neutral-darkest dark:text-neutral-light">
+                    {notification.message}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
-
-        {/* Dark Mode Toggle */}
-        <button
-          className="p-2 rounded-full hover:bg-neutral-lightest dark:hover:bg-dark-light"
-          onClick={toggleDarkMode}
-        >
-          {darkMode ? (
-            <FaSun className="text-secondary" />
-          ) : (
-            <FaMoon className="text-dark-light" />
-          )}
-        </button>
 
         {/* User Profile */}
         <div className="flex items-center space-x-3">
