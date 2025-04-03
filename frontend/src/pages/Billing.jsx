@@ -1,8 +1,11 @@
-import { useState } from 'react'
-import { FaCreditCard, FaHistory, FaFileInvoice, FaDownload } from 'react-icons/fa'
-import { validateCardNumber, validateExpiryDate, validateCVV, formatCardNumber, formatCurrency } from '../utils/validation'
-import Toast from '../components/Toast'
+import { useState } from 'react';
+import { FaCreditCard, FaHistory, FaFileInvoice, FaDownload } from 'react-icons/fa';
+import { validateCardNumber, validateExpiryDate, validateCVV, formatCardNumber, formatCurrency } from '../utils/validation';
+import Toast from '../components/Toast';
+import jsPDF from 'jspdf'; // Import jsPDF for PDF generation
 
+
+//frontend billing
 const Billing = () => {
   const [bills, setBills] = useState([
     {
@@ -46,128 +49,230 @@ const Billing = () => {
         { description: 'Therapy Session (1 hour)', amount: 150.00 }
       ]
     }
-  ])
+  ]);
 
-  const [selectedBill, setSelectedBill] = useState(null)
-  const [showModal, setShowModal] = useState(false)
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [activeTab, setActiveTab] = useState('unpaid')
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('unpaid');
 
   const [paymentInfo, setPaymentInfo] = useState({
     cardNumber: '',
     cardName: '',
     expiryDate: '',
     cvv: ''
-  })
+  });
 
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' })
-  const [errors, setErrors] = useState({})
+  const [newPayment, setNewPayment] = useState({
+    doctorName: '',
+    specialty: '',
+    amount: ''
+  });
+
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [errors, setErrors] = useState({});
 
   const validateForm = () => {
-    const newErrors = {}
+    const newErrors = {};
     
     if (!validateCardNumber(paymentInfo.cardNumber)) {
-      newErrors.cardNumber = 'Invalid card number'
+      newErrors.cardNumber = 'Invalid card number';
     }
     if (!paymentInfo.cardName.trim()) {
-      newErrors.cardName = 'Name is required'
+      newErrors.cardName = 'Name is required';
     }
     if (!validateExpiryDate(paymentInfo.expiryDate)) {
-      newErrors.expiryDate = 'Invalid expiry date'
+      newErrors.expiryDate = 'Invalid expiry date';
     }
     if (!validateCVV(paymentInfo.cvv)) {
-      newErrors.cvv = 'Invalid CVV'
+      newErrors.cvv = 'Invalid CVV';
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleCardNumberChange = (e) => {
-    let value = e.target.value.replace(/\D/g, '')
-    value = formatCardNumber(value)
-    setPaymentInfo({ ...paymentInfo, cardNumber: value })
-  }
+    let value = e.target.value.replace(/\D/g, '');
+    value = formatCardNumber(value);
+    setPaymentInfo({ ...paymentInfo, cardNumber: value });
+  };
 
   const handleExpiryDateChange = (e) => {
-    let value = e.target.value.replace(/\D/g, '')
+    let value = e.target.value.replace(/\D/g, '');
     if (value.length >= 2) {
-      value = value.slice(0, 2) + '/' + value.slice(2, 4)
+      value = value.slice(0, 2) + '/' + value.slice(2, 4);
     }
-    setPaymentInfo({ ...paymentInfo, expiryDate: value })
-  }
+    setPaymentInfo({ ...paymentInfo, expiryDate: value });
+  };
 
   const handlePaymentSubmit = async (e) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+  
     if (!validateForm()) {
       setToast({
         show: true,
-        message: 'Please correct the errors in the form',
-        type: 'error'
-      })
-      return
+        message: "Please correct the errors in the form",
+        type: "error",
+      });
+      return;
     }
-
+  
+    const paymentData = {
+      cardNumber: paymentInfo.cardNumber,
+      cardName: paymentInfo.cardName,
+      expiryDate: paymentInfo.expiryDate,
+      cvv: paymentInfo.cvv,
+      amount: selectedBill.amount,
+      billId: selectedBill.id,
+    };
+  
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      setBills(bills.map(bill => 
-        bill.id === selectedBill.id ? { ...bill, status: 'paid' } : bill
-      ))
-      
-      setShowPaymentModal(false)
+      console.log("Sending payment data:", paymentData); // Debugging log
+  
+      const response = await fetch("http://localhost:5000/api/payments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(paymentData),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Backend error:", errorData); // Log backend error
+        throw new Error("Failed to process payment");
+      }
+  
+      const savedPayment = await response.json();
+      console.log("Saved payment:", savedPayment); // Debugging log
+  
+      // Update the bill with payment details
+      setBills(
+        bills.map((bill) =>
+          bill.id === selectedBill.id
+            ? {
+                ...bill,
+                status: "paid",
+                paymentDetails: {
+                  cardNumber: paymentInfo.cardNumber,
+                  cardName: paymentInfo.cardName,
+                  expiryDate: paymentInfo.expiryDate,
+                  cvv: paymentInfo.cvv,
+                  amount: selectedBill.amount,
+                  billId: selectedBill.id,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                },
+              }
+            : bill
+        )
+      );
+  
+      setShowPaymentModal(false);
       setPaymentInfo({
-        cardNumber: '',
-        cardName: '',
-        expiryDate: '',
-        cvv: ''
-      })
-      
+        cardNumber: "",
+        cardName: "",
+        expiryDate: "",
+        cvv: "",
+      });
+  
       setToast({
         show: true,
-        message: 'Payment processed successfully',
-        type: 'success'
-      })
+        message: "Payment processed successfully",
+        type: "success",
+      });
     } catch (error) {
+      console.error("Error processing payment:", error);
       setToast({
         show: true,
-        message: 'Payment processing failed. Please try again.',
-        type: 'error'
-      })
+        message: "Payment processing failed. Please try again.",
+        type: "error",
+      });
     }
-  }
+  };
 
   const handleDownloadPDF = (bill) => {
-    // Simulate PDF download
+    const doc = new jsPDF();
+
+    // Add content to the PDF
+    doc.text(`Bill Details: ${bill.description}`, 10, 10);
+    doc.text(`Date: ${new Date(bill.date).toLocaleDateString()}`, 10, 20);
+    doc.text(`Due Date: ${new Date(bill.dueDate).toLocaleDateString()}`, 10, 30);
+    doc.text(`Doctor: ${bill.doctor}`, 10, 40);
+    doc.text(`Facility: ${bill.facility}`, 10, 50);
+    doc.text(`Amount: ${formatCurrency(bill.amount)}`, 10, 60);
+    
+    // Add payment details if available
+    if (bill.paymentDetails) {
+      doc.text(`Card Number: ${bill.paymentDetails.cardNumber}`, 10, 70);
+      doc.text(`Cardholder Name: ${bill.paymentDetails.cardName}`, 10, 80);
+      doc.text(`Expiry Date: ${bill.paymentDetails.expiryDate}`, 10, 90);
+      doc.text(`CVV: ${bill.paymentDetails.cvv}`, 10, 100);
+      doc.text(`Created At: ${new Date(bill.paymentDetails.createdAt).toLocaleString()}`, 10, 110);
+      doc.text(`Updated At: ${new Date(bill.paymentDetails.updatedAt).toLocaleString()}`, 10, 120);
+    }
+
+    // Add items to the PDF
+    doc.text('Items:', 10, 130);
+    bill.items.forEach((item, index) => {
+      doc.text(`${item.description}: ${formatCurrency(item.amount)}`, 10, 140 + (index * 10));
+    });
+
+    // Save the PDF
+    doc.save(`bill_${bill.id}.pdf`);
+
+    // Show toast notification
     setToast({
       show: true,
       message: 'PDF download started',
       type: 'success'
-    })
-  }
+    });
+  };
 
   const filteredBills = bills.filter(
     bill => activeTab === 'unpaid' ? bill.status === 'unpaid' : bill.status === 'paid'
-  )
+  );
 
   const handleViewDetails = (bill) => {
-    setSelectedBill(bill)
-    setShowModal(true)
-  }
+    setSelectedBill(bill);
+    setShowModal(true);
+  };
 
   const handlePayment = (bill) => {
-    setSelectedBill(bill)
-    setShowPaymentModal(true)
-  }
+    setSelectedBill(bill);
+    setShowPaymentModal(true);
+  };
+
+  const handleAddPayment = () => {
+    const newBill = {
+      id: bills.length + 1, // Incremental ID
+      date: new Date().toISOString().split('T')[0], // Today's date
+      dueDate: new Date(new Date().setDate(new Date().getDate() + 14)).toISOString().split('T')[0], // Due in 14 days
+      description: `${newPayment.specialty} Consultation`,
+      amount: parseFloat(newPayment.amount),
+      status: 'unpaid',
+      doctor: newPayment.doctorName,
+      facility: 'Unknown', // You can modify this as needed
+      items: [] // No items for this new payment
+    };
+
+    setBills([...bills, newBill]);
+    setNewPayment({ doctorName: '', specialty: '', amount: '' }); // Reset the input fields
+    setToast({
+      show: true,
+      message: 'New payment added successfully',
+      type: 'success'
+    });
+  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -178,6 +283,44 @@ const Billing = () => {
         </div>
         <div className="mt-4 md:mt-0">
           <button className="btn btn-primary">Payment History</button>
+        </div>
+      </div>
+
+      {/* New Payment Section */}
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-dark-dark dark:text-white">Add New Payment</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-dark-dark dark:text-white mb-1">Doctor's Name</label>
+            <input
+              type="text"
+              value={newPayment.doctorName}
+              onChange={(e) => setNewPayment({ ...newPayment, doctorName: e.target.value })}
+              className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-dark-dark dark:text-white mb-1">Specialty</label>
+            <input
+              type="text"
+              value={newPayment.specialty}
+              onChange={(e) => setNewPayment({ ...newPayment, specialty: e.target.value })}
+              className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-dark-dark dark:text-white mb-1">Amount</label>
+            <input
+              type="number"
+              value={newPayment.amount}
+              onChange={(e) => setNewPayment({ ...newPayment, amount: e.target.value })}
+              className="w-full p-2 border border-neutral dark:border-dark-light rounded-md bg-white dark:bg-dark-light text-dark-dark dark:text-white"
+              required
+            />
+          </div>
+          <button onClick={handleAddPayment} className="btn btn-primary">Add Payment</button>
         </div>
       </div>
 
@@ -384,8 +527,8 @@ const Billing = () => {
                 {selectedBill.status === 'unpaid' && (
                   <button 
                     onClick={() => {
-                      setShowModal(false)
-                      handlePayment(selectedBill)
+                      setShowModal(false);
+                      handlePayment(selectedBill);
                     }}
                     className="btn btn-primary"
                   >
@@ -528,7 +671,7 @@ const Billing = () => {
         />
       )}
     </div>
-  )
-}
+  );
+};
 
-export default Billing
+export default Billing;

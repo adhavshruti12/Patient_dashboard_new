@@ -1,284 +1,238 @@
-import { useState } from 'react'
-import { FaPills, FaFilePrescription, FaDownload, FaEye, FaHistory, FaCalendarAlt } from 'react-icons/fa'
+import React, { useEffect, useState } from "react";
+import jsPDF from "jspdf"; // Import jsPDF for PDF generation
+import html2canvas from "html2canvas"; // Import html2canvas for rendering HTML to canvas
+import { useNavigate } from "react-router-dom";
 
-const Prescriptions = () => {
-  const [prescriptions, setPrescriptions] = useState([
-    {
-      id: 1,
-      date: '2025-04-10',
-      doctor: 'Dr. Sarah Johnson',
-      facility: 'Heart Care Center',
-      status: 'active',
-      medications: [
-        {
-          name: 'Lisinopril',
-          dosage: '10mg',
-          frequency: 'Once daily',
-          duration: '6 months',
-          instructions: 'Take in the morning with food',
-          refills: 5
-        },
-        {
-          name: 'Atorvastatin',
-          dosage: '20mg',
-          frequency: 'Once daily',
-          duration: '6 months',
-          instructions: 'Take in the evening',
-          refills: 5
-        }
-      ]
-    },
-    {
-      id: 2,
-      date: '2025-03-15',
-      doctor: 'Dr. Michael Chen',
-      facility: 'Skin Health Clinic',
-      status: 'active',
-      medications: [
-        {
-          name: 'Hydrocortisone Cream',
-          dosage: '1%',
-          frequency: 'Twice daily',
-          duration: '2 weeks',
-          instructions: 'Apply to affected areas',
-          refills: 0
-        }
-      ]
-    },
-    {
-      id: 3,
-      date: '2025-01-20',
-      doctor: 'Dr. Emily Rodriguez',
-      facility: 'Community Health Center',
-      status: 'expired',
-      medications: [
-        {
-          name: 'Amoxicillin',
-          dosage: '500mg',
-          frequency: 'Three times daily',
-          duration: '10 days',
-          instructions: 'Take with food',
-          refills: 0
-        }
-      ]
+const user = JSON.parse(localStorage.getItem("user")); // Retrieve user details from local storage
+
+const MedicalRecords = () => {
+  const [records, setRecords] = useState([]); // Prescription records
+  const [search, setSearch] = useState(""); // Search input
+  const [toast, setToast] = useState({ show: false, message: "", type: "" }); // Toast state
+  const navigate = useNavigate();
+
+  // Fetch all prescriptions
+  const fetchPrescriptions = async () => {
+    try {
+      const patientName = user?.name; // Get the logged-in patient's name (replace with the correct field)
+      const response = await fetch(
+        `http://localhost:5000/api/prescriptions?patientName=${encodeURIComponent(
+          patientName
+        )}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch prescriptions");
+      }
+
+      const prescriptionsData = await response.json();
+      setRecords(prescriptionsData); // Update the state with fetched data
+    } catch (error) {
+      console.error("Error fetching prescriptions:", error.message);
+      setToast({
+        show: true,
+        message: "Failed to load prescriptions. Please try again later.",
+        type: "error",
+      });
     }
-  ])
+  };
 
-  const [selectedPrescription, setSelectedPrescription] = useState(null)
-  const [showModal, setShowModal] = useState(false)
-  const [activeTab, setActiveTab] = useState('active')
+  useEffect(() => {
+    if (user?.name) {
+      fetchPrescriptions();
+    }
+  }, [user]);
 
-  const filteredPrescriptions = prescriptions.filter(
-    prescription => prescription.status === activeTab
-  )
+  // Filter records based on the search input
+  const filteredRecords = records.filter((record) =>
+    record.patientName.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const handleViewDetails = (prescription) => {
-    setSelectedPrescription(prescription)
-    setShowModal(true)
-  }
+  // Function to download a prescription as a PDF
+  const handleDownloadPrescription = async (record) => {
+    try {
+      // Dynamically select the specific prescription block
+      const element = document.querySelector(`#prescription-${record.id}`);
+      if (!element) {
+        console.error(`Prescription block with ID prescription-${record.id} not found.`);
+        return;
+      }
+
+      const button = element.querySelector(".no-print"); // Select the button inside the prescription block
+
+      // Temporarily hide the button
+      if (button) button.style.display = "none";
+
+      // Capture the content of the prescription block
+      const canvas = await html2canvas(element, { scale: 2 }); // Higher scale for better quality
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+
+      // Save the PDF with a unique filename
+      pdf.save(`Prescription_${record.patientName}_${record.id}.pdf`);
+
+      // Restore the button visibility
+      if (button) button.style.display = "block";
+    } catch (error) {
+      console.error("Error generating PDF:", error.message);
+    }
+  };
+
+  // Styles for the page
+  const styles = {
+    container: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      minHeight: "100vh",
+      background: "#f8f9fa",
+      padding: "20px",
+    },
+    header: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      width: "100%",
+      maxWidth: "900px",
+      marginBottom: "20px",
+    },
+    title: {
+      fontSize: "24px",
+      fontWeight: "bold",
+      color: "black",
+      textAlign: "center",
+      marginBottom: "20px",
+    },
+    searchBar: {
+      width: "40%",
+      padding: "10px",
+      border: "1px solid #ddd",
+      borderRadius: "5px",
+      outline: "none",
+    },
+    card: {
+      width: "100%",
+      maxWidth: "900px",
+      background: "#fff",
+      boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
+      borderRadius: "10px",
+      padding: "20px",
+      marginTop: "20px",
+    },
+    recordItem: {
+      background: "#fff",
+      color: "#000",
+      padding: "15px",
+      borderRadius: "8px",
+      boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.1)",
+      marginBottom: "15px",
+    },
+    recordHeader: {
+      fontSize: "18px",
+      fontWeight: "bold",
+      color: "#007bff",
+      marginBottom: "5px",
+    },
+    sectionTitle: {
+      fontSize: "16px",
+      fontWeight: "bold",
+      marginTop: "10px",
+      color: "#000",
+    },
+    actionButtons: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: "10px",
+      marginTop: "15px",
+    },
+    button: {
+      padding: "8px 15px",
+      border: "none",
+      borderRadius: "5px",
+      fontWeight: "bold",
+      cursor: "pointer",
+    },
+    downloadBtn: {
+      background: "#48f0dc",
+      color: "#fff",
+    },
+  };
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-dark-dark dark:text-white">Prescriptions</h1>
-          <p className="text-neutral-darkest dark:text-neutral-light">Manage your medication prescriptions</p>
-        </div>
-        <div className="mt-4 md:mt-0">
-          <button className="btn btn-primary">Request New Prescription</button>
-        </div>
+    <div style={styles.container}>
+      {/* Header Section */}
+      <div style={styles.header}>
+        <h2 style={styles.title}>Medical Records</h2>
+        <input
+          type="text"
+          placeholder="Search by patient name..."
+          style={styles.searchBar}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
-      <div className="card">
-        <div className="flex border-b border-neutral dark:border-dark-light mb-4">
-          <button 
-            className={`px-4 py-2 text-sm font-medium ${
-              activeTab === 'active' 
-                ? 'text-primary border-b-2 border-primary' 
-                : 'text-neutral-darkest dark:text-neutral-light'
-            }`}
-            onClick={() => setActiveTab('active')}
-          >
-            Active
-          </button>
-          <button 
-            className={`px-4 py-2 text-sm font-medium ${
-              activeTab === 'expired' 
-                ? 'text-primary border-b-2 border-primary' 
-                : 'text-neutral-darkest dark:text-neutral-light'
-            }`}
-            onClick={() => setActiveTab('expired')}
-          >
-            Expired
-          </button>
-        </div>
-
-        {filteredPrescriptions.length > 0 ? (
-          <div className="space-y-4">
-            {filteredPrescriptions.map(prescription => (
-              <div key={prescription.id} className="border border-neutral dark:border-dark-light rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex justify-between">
-                  <div className="flex items-start">
-                    <div className="p-2 mr-3 rounded-full bg-primary-light bg-opacity-20">
-                      <FaFilePrescription className="text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-dark-dark dark:text-white">Prescription from {prescription.doctor}</h3>
-                      <p className="text-sm text-neutral-darkest dark:text-neutral-light">{prescription.facility}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      prescription.status === 'active' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
-                        : 'bg-neutral-light text-neutral-darkest dark:bg-dark dark:text-neutral-light'
-                    }`}>
-                      {prescription.status === 'active' ? 'Active' : 'Expired'}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="mt-3 flex items-center text-sm">
-                  <FaCalendarAlt className="mr-2 text-primary" />
-                  <span className="text-dark-light dark:text-neutral-light">
-                    Prescribed on {new Date(prescription.date).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric', 
-                      year: 'numeric' 
-                    })}
-                  </span>
-                </div>
-                
-                <div className="mt-3">
-                  <p className="text-sm font-medium text-dark-dark dark:text-white mb-2">Medications ({prescription.medications.length})</p>
-                  <div className="space-y-2">
-                    {prescription.medications.slice(0, 2).map((medication, index) => (
-                      <div key={index} className="flex items-center text-sm">
-                        <FaPills className="mr-2 text-primary" />
-                        <span className="text-dark-light dark:text-neutral-light">
-                          {medication.name} {medication.dosage} - {medication.frequency}
-                        </span>
-                      </div>
-                    ))}
-                    {prescription.medications.length > 2 && (
-                      <div className="text-sm text-primary cursor-pointer hover:text-primary-dark" onClick={() => handleViewDetails(prescription)}>
-                        + {prescription.medications.length - 2} more medications
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="mt-4 flex justify-between items-center">
-                  <button 
-                    onClick={() => handleViewDetails(prescription)}
-                    className="btn btn-primary text-xs"
-                  >
-                    View Details
-                  </button>
-                  <button className="btn btn-outline text-xs">Download PDF</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-neutral-darkest dark:text-neutral-light">No {activeTab} prescriptions found.</p>
-            {activeTab === 'active' && (
-              <button className="mt-2 btn btn-primary text-sm">Request New Prescription</button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Prescription Details Modal */}
-      {showModal && selectedPrescription && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-dark-light rounded-lg shadow-xl max-w-2xl w-full mx-4">
-            <div className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    selectedPrescription.status === 'active' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
-                      : 'bg-neutral-light text-neutral-darkest dark:bg-dark dark:text-neutral-light'
-                  }`}>
-                    {selectedPrescription.status === 'active' ? 'Active' : 'Expired'}
-                  </span>
-                  <h3 className="text-lg font-semibold text-dark-dark dark:text-white mt-1">Prescription Details</h3>
-                </div>
-                <button 
-                  onClick={() => setShowModal(false)}
-                  className="text-neutral-darkest dark:text-neutral-light hover:text-dark-dark dark:hover:text-white"
+      {/* Records Section */}
+      <div style={styles.card}>
+        {filteredRecords.length > 0 ? (
+          filteredRecords.map((record, index) => (
+            <div
+              key={index}
+              id={`prescription-${record.id}`} // Add a unique ID for each prescription
+              style={styles.recordItem}
+            >
+              <h3 style={styles.recordHeader}>
+                Prescription for {record.patientName}
+              </h3>
+              <p>
+                <strong>Prescription Date:</strong>{" "}
+                {new Date(record.date).toLocaleDateString()}
+              </p>
+              <p style={styles.sectionTitle}>Medications</p>
+              <ul>
+                {record.medicines.map((med, i) => (
+                  <li key={i}>
+                    {med.name} ({med.dosage}, {med.frequency}, {med.duration})
+                  </li>
+                ))}
+              </ul>
+              <p>
+                <strong>Age:</strong> {record.age}
+              </p>
+              <p>
+                <strong>Diagnosis:</strong> {record.diagnosis}
+              </p>
+              <p>
+                <strong>Surgeries:</strong> {record.surgeries || "None"}
+              </p>
+              <p>
+                <strong>Follow-Up Date:</strong>{" "}
+                {record.followUp?.nextDate
+                  ? new Date(record.followUp.nextDate).toLocaleDateString()
+                  : "None"}
+              </p>
+              <div style={styles.actionButtons}>
+                <button
+                  className="no-print"
+                  style={{ ...styles.button, ...styles.downloadBtn }}
+                  onClick={() => handleDownloadPrescription(record)} // Pass the entire record object
                 >
-                  &times;
+                  Download Prescription
                 </button>
               </div>
-              
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-neutral-darkest dark:text-neutral-light">Prescribed On</p>
-                  <p className="text-md text-dark-dark dark:text-white">
-                    {new Date(selectedPrescription.date).toLocaleDateString('en-US', { 
-                      month: 'long', 
-                      day: 'numeric', 
-                      year: 'numeric' 
-                    })}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-neutral-darkest dark:text-neutral-light">Doctor</p>
-                  <p className="text-md text-dark-dark dark:text-white">{selectedPrescription.doctor}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-sm text-neutral-darkest dark:text-neutral-light">Facility</p>
-                  <p className="text-md text-dark-dark dark:text-white">{selectedPrescription.facility}</p>
-                </div>
-              </div>
-              
-              <div className="mt-6">
-                <p className="text-sm font-medium text-dark-dark dark:text-white mb-2">Medications</p>
-                <div className="space-y-4">
-                  {selectedPrescription.medications.map((medication, index) => (
-                    <div key={index} className="p-4 bg-neutral-lightest dark:bg-dark rounded-md">
-                      <div className="flex items-center mb-2">
-                        <FaPills className="text-primary mr-2" />
-                        <h4 className="font-medium text-dark-dark dark:text-white">{medication.name} {medication.dosage}</h4>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <p className="text-neutral-darkest dark:text-neutral-light">Frequency</p>
-                          <p className="text-dark-dark dark:text-white">{medication.frequency}</p>
-                        </div>
-                        <div>
-                          <p className="text-neutral-darkest dark:text-neutral-light">Duration</p>
-                          <p className="text-dark-dark dark:text-white">{medication.duration}</p>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="text-neutral-darkest dark:text-neutral-light">Instructions</p>
-                          <p className="text-dark-dark dark:text-white">{medication.instructions}</p>
-                        </div>
-                        <div>
-                          <p className="text-neutral-darkest dark:text-neutral-light">Refills</p>
-                          <p className="text-dark-dark dark:text-white">{medication.refills} remaining</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="mt-6 flex justify-end space-x-3">
-                <button className="btn btn-outline">Download PDF</button>
-                {selectedPrescription.status === 'active' && (
-                  <button className="btn btn-primary">Request Refill</button>
-                )}
-              </div>
             </div>
-          </div>
-        </div>
-      )}
+          ))
+        ) : (
+          <p style={{ textAlign: "center", fontWeight: "bold" }}>
+            No medical records found.
+          </p>
+        )}
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default Prescriptions
+export default MedicalRecords;

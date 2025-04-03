@@ -11,7 +11,7 @@ const upload = multer({ storage: storage });
 
 router.post("/patientRegister", upload.array("patient_prevMedicalReports", 5), patientRegister);
 router.post('/patientLogin', patientLogin);
-router.post('/login', loginUser);
+
 
 router.get("/me", authenticate, getPatientProfile);
 router.get("/getPatientProfile", authenticate, getPatientProfile);

@@ -26,7 +26,11 @@ const Sidebar = () => {
   return (
     <div className="fixed top-0 left-0 h-screen w-16 m-0 flex flex-col bg-white dark:bg-dark text-dark dark:text-white shadow-lg z-10">
       <div className="flex items-center justify-center h-16 w-full">
-        <img src="/logo.svg" alt="YouMedi Logo" className="h-10 w-10" />
+        <img
+          src="https://cdn.vectorstock.com/i/500p/47/64/hospital-doctor-management-logo-graphic-design-vector-51534764.jpg" // Replace with your online logo URL
+          alt="YouMedi Logo"
+          className="h-10 w-10"
+        />
       </div>
       <div className="flex flex-col items-center">
         <SidebarIcon icon={<FaHome size="20" />} text="Dashboard" to="/dashboard" />

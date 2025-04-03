@@ -1,4 +1,4 @@
-const Appointment = require("../models/appointmentModel"); // Assuming you have an Appointment model
+const Appointment = require("../models/Appointment");
 
 // Book a new appointment
 exports.bookAppointment = async (req, res) => {
@@ -12,6 +12,7 @@ exports.bookAppointment = async (req, res) => {
     res.status(500).json({ success: false, message: error.message || "Error booking appointment" });
   }
 };
+
 
 // Get all appointments
 exports.getAppointments = async (req, res) => {
@@ -32,6 +33,7 @@ exports.rescheduleAppointment = async (req, res) => {
     }
     console.log("Received data for update:", req.body);
 
+    
     console.log("Updated Data:", req.body);
 
     const { id } = req.params;
@@ -42,10 +44,11 @@ exports.rescheduleAppointment = async (req, res) => {
       { $set: updatedData },
       { new: true, runValidators: true }
     );
-
+    
     if (!updatedAppointment) {
       return res.status(404).json({ success: false, message: "Appointment not found" });
     }
+    
 
     res.status(200).json({ success: true, message: "Appointment rescheduled successfully", updatedAppointment });
   } catch (error) {
@@ -62,31 +65,5 @@ exports.cancelAppointment = async (req, res) => {
     res.status(200).json({ success: true, message: "Appointment cancelled successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Error cancelling appointment", error });
-  }
-};
-
-// Controller to fetch upcoming appointments
-exports.getUpcomingAppointments = async (req, res) => {
-  const { userId } = req.query;
-
-  if (!userId) {
-    console.error("User ID is missing in the request");
-    return res.status(400).json({ message: "User ID is required" });
-  }
-
-  try {
-    console.log("Fetching upcoming appointments for userId:", userId);
-
-    const upcomingAppointments = await Appointment.find({
-      userId,
-      date: { $gte: new Date() },
-    }).sort({ date: 1 });
-
-    console.log("Fetched upcoming appointments:", upcomingAppointments);
-
-    res.status(200).json(upcomingAppointments);
-  } catch (error) {
-    console.error("Error fetching upcoming appointments:", error);
-    res.status(500).json({ message: "Failed to fetch upcoming appointments" });
   }
 };
